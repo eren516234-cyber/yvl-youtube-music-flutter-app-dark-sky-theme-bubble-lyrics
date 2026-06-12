@@ -11,7 +11,6 @@ import 'package:yvl/widgets/global_background.dart';
 import 'package:yvl/providers/theme_provider.dart';
 import 'package:yvl/providers/settings_provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 Future<void> main() async {
@@ -29,15 +28,14 @@ Future<void> main() async {
 
   final container = ProviderContainer();
 
-  await Future.wait([
+  await Future.wait(<Future<dynamic>>[
     JustAudioBackground.init(
-      androidNotificationChannelId: 'com.ryanheise.bg_demo.channel.audio',
+      androidNotificationChannelId: 'com.shashwat.yvl.channel.audio',
       androidNotificationChannelName: 'Audio playback',
       androidNotificationOngoing: true,
     ),
     container.read(storageServiceProvider).init(),
     NotificationService().init(),
-    NewPipeExtractor.init(),
   ]);
 
   runApp(UncontrolledProviderScope(container: container, child: const MyApp()));

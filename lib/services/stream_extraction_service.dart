@@ -1,13 +1,9 @@
-import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
-import 'package:flutter_new_pipe_extractor/flutter_new_pipe_extractor.dart';
 
 class StreamExtractionService {
-  /// Extracts the best audio stream URL using the fastest YoutubeExplode method with Android VR client
-  /// Falls back to NewPipeExtractor if YoutubeExplode fails.
+  /// Extracts the best audio stream URL using YoutubeExplode with Android VR client
   static Future<String?> getStreamUrl(String videoId) async {
-    // 1. YoutubeExplode (Android VR Client)
     final yt = YoutubeExplode();
     try {
       debugPrint('FastExtraction: Extracting stream for $videoId');
@@ -30,29 +26,7 @@ class StreamExtractionService {
       yt.close();
     }
 
-    // 2. NewPipeExtractor Fallback (Android only)
-    if (Platform.isAndroid) {
-      debugPrint('FastExtraction: Falling back to NewPipeExtractor...');
-      try {
-        final info = await NewPipeExtractor.getVideoInfo(
-          'https://www.youtube.com/watch?v=$videoId',
-        ).timeout(const Duration(seconds: 5));
-        
-        if (info.audioStreams.isNotEmpty) {
-          final stream = info.audioStreams.reduce(
-            (a, b) => a.bitrate > b.bitrate ? a : b,
-          );
-          if (stream.content.isNotEmpty) {
-            debugPrint('FastExtraction: Stream URL via NewPipe: ${stream.content}');
-            return stream.content;
-          }
-        }
-      } catch (e) {
-        debugPrint('FastExtraction: NewPipeExtractor failed: $e');
-      }
-    }
-
-    debugPrint('FastExtraction: All primary extraction methods failed.');
+    debugPrint('FastExtraction: Extraction failed — returning null.');
     return null;
   }
 }
