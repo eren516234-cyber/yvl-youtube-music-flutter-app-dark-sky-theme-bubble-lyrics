@@ -1,11 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yvl/models/muzo_item.dart';
 import 'package:yvl/services/muzo_api_service.dart';
+import 'package:yvl/services/storage_service.dart';
 
 final trendingContentProvider = FutureProvider<Map<String, List<MuzoItem>>>((
   ref,
 ) async {
-  final apiService = MuzoApiService();
+  final storage = ref.read(storageServiceProvider);
+  final apiService = MuzoApiService(storage);
   return apiService.getTrendingContent();
 });
 
