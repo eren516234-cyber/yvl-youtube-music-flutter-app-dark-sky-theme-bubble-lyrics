@@ -53,7 +53,7 @@ class _MainLayoutState extends ConsumerState<MainLayout>
     
     // Check initial link if app was in cold state (minimized)
     try {
-      final initialUri = await _appLinks.getInitialLink();
+      final initialUri = await _appLinks.getInitialAppLink();
       if (initialUri != null) {
         _handleDeepLink(initialUri);
       }
