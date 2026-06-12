@@ -23,7 +23,7 @@ subprojects {
     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile>().configureEach {
         kotlinOptions {
             if (project.name != "app") {
-                jvmTarget = "1.8"
+                jvmTarget = "17"
             }
         }
     }
