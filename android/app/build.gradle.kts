@@ -10,8 +10,6 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        // Java 11 — consistent with global root build.gradle.kts setting
-        // and compatible with isCoreLibraryDesugaringEnabled
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
