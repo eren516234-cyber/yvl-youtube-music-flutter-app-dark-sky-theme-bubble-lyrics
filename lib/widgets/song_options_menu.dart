@@ -241,11 +241,10 @@ class SongOptionsMenu extends ConsumerWidget {
               context,
               icon: FluentIcons.share_24_regular,
               label: 'Share',
-              onTap: () {
+              onTap: () async {
                 onClose?.call();
                 if (result.videoId != null) {
-                  // ignore: deprecated_member_use
-                  Share.share('https://youtube.com/watch?v=${result.videoId}');
+                  await SharePlus.share(ShareParams(text: 'https://youtube.com/watch?v=${result.videoId}'));
                 }
               },
             ),
