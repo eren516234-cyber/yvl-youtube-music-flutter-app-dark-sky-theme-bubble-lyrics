@@ -130,6 +130,7 @@ class AudioHandler {
     });
 
     _player.sequenceStateStream.listen((state) {
+      if (state == null) return;
       final sequence = state.sequence;
       final index = state.currentIndex;
 
