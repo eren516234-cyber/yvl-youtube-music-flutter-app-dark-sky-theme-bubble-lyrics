@@ -105,43 +105,8 @@ class StorageService {
     debugPrint('StorageService initialized');
   }
 
-  Future<void> refreshAll({bool silent = false}) async {
-    if (!silent) isLoadingNotifier.value = true;
-
-    try {
-      final userData = await _api.getUserData();
-
-      // Update User Info
-      await setUserInfo(
-        userData.user.username,
-        userData.user.email,
-        avatarUrl: userData.user.avatar,
-      );
-
-      // Update History
-      _historyNotifier.value = userData.history;
-      _saveHistoryToCache(userData.history);
-
-      // Update Favorites
-      _favoritesNotifier.value = userData.favorites;
-      _saveFavoritesToCache(userData.favorites);
-
-      // Update Subscriptions
-      _subscriptionsNotifier.value = userData.subscriptions;
-      _saveSubscriptionsToCache(userData.subscriptions);
-
-      // Update Playlists
-      _playlistsNotifier.value = userData.playlists;
-      _savePlaylistsToCache(userData.playlists);
-    } catch (e) {
-      debugPrint('Error refreshing data: $e');
-      // Fallback to individual calls if consolidated fails?
-      // Or just log error. The requirement implies replacing it.
-      // We can keep individual calls as fallback if we wanted resilience, but let's stick to the plan.
-    } finally {
-      isLoadingNotifier.value = false;
-    }
-  }
+  // All data is stored locally in Hive — no remote sync needed.
+  Future<void> refreshAll({bool silent = false}) async {}
 
   // Listenables for UI
   ValueListenable<List<MuzoItem>> get historyListenable => _historyNotifier;
@@ -167,54 +132,25 @@ class StorageService {
 
   // History
   Future<void> addToHistory(MuzoItem result) async {
-    // Optimistic update
     final current = List<MuzoItem>.from(_historyNotifier.value);
+    current.removeWhere((s) => s.videoId == result.videoId);
     current.insert(0, result);
+    if (current.length > 200) current.removeLast();
     _historyNotifier.value = current;
     _saveHistoryToCache(current);
-
-    try {
-      await _api.addToHistory(result);
-    } catch (e) {
-      debugPrint('Error adding to history API: $e');
-      // We don't set errorNotifier here to avoid spamming user on every song play
-    }
   }
 
 
   Future<void> removeFromHistory(String videoId) async {
-    isLoadingNotifier.value = true;
-    // Optimistic update
     final current = List<MuzoItem>.from(_historyNotifier.value);
     current.removeWhere((item) => item.videoId == videoId);
     _historyNotifier.value = current;
     _saveHistoryToCache(current);
-
-    try {
-      await _api.removeFromHistory(videoId);
-    } catch (e) {
-      errorNotifier.value = 'Failed to remove from history: $e';
-      // Revert optimistic update?
-      // For history, maybe not strictly necessary to revert as it's less critical,
-      // but strictly speaking we should.
-      // However, fetching the item back is hard without knowing what it was exactly (we removed it).
-      // We could keep a reference to the removed item.
-    } finally {
-      isLoadingNotifier.value = false;
-    }
   }
 
   Future<void> clearHistory() async {
-    isLoadingNotifier.value = true;
-    try {
-      await _api.clearHistory();
-      _historyNotifier.value = [];
-      _saveHistoryToCache([]);
-    } catch (e) {
-      errorNotifier.value = 'Failed to clear history: $e';
-    } finally {
-      isLoadingNotifier.value = false;
-    }
+    _historyNotifier.value = [];
+    _saveHistoryToCache([]);
   }
 
   // Playlists
@@ -237,48 +173,30 @@ class StorageService {
   }
 
   Future<void> deletePlaylist(String name) async {
-    isLoadingNotifier.value = true;
-    try {
-      await _api.deletePlaylist(name);
-      final current = List<Playlist>.from(_playlistsNotifier.value);
-      current.removeWhere((p) => p.name == name);
-      _playlistsNotifier.value = current;
-      _savePlaylistsToCache(current);
-    } catch (e) {
-      errorNotifier.value = 'Failed to delete playlist: $e';
-    } finally {
-      isLoadingNotifier.value = false;
-    }
+    final current = List<Playlist>.from(_playlistsNotifier.value);
+    current.removeWhere((p) => p.name == name);
+    _playlistsNotifier.value = current;
+    _savePlaylistsToCache(current);
   }
 
 
   Future<void> addToPlaylist(String name, MuzoItem result) async {
     final current = List<Playlist>.from(_playlistsNotifier.value);
     final playlistIndex = current.indexWhere((p) => p.name == name);
-
     if (playlistIndex != -1) {
       final playlist = current[playlistIndex];
       final songs = List<MuzoItem>.from(playlist.songs);
-
       if (!songs.any((s) => s.videoId == result.videoId)) {
-        isLoadingNotifier.value = true;
-        try {
-          await _api.addToPlaylist(name, result);
-          songs.add(result);
-          current[playlistIndex] = Playlist(
-            id: playlist.id,
-            name: playlist.name,
-            createdAt: playlist.createdAt,
-            songCount: songs.length,
-            songs: songs,
-          );
-          _playlistsNotifier.value = current;
-          _savePlaylistsToCache(current);
-        } catch (e) {
-          errorNotifier.value = 'Failed to add to playlist: $e';
-        } finally {
-          isLoadingNotifier.value = false;
-        }
+        songs.add(result);
+        current[playlistIndex] = Playlist(
+          id: playlist.id,
+          name: playlist.name,
+          createdAt: playlist.createdAt,
+          songCount: songs.length,
+          songs: songs,
+        );
+        _playlistsNotifier.value = current;
+        _savePlaylistsToCache(current);
       }
     }
   }
@@ -286,12 +204,9 @@ class StorageService {
   Future<void> removeFromPlaylist(String name, String videoId) async {
     final current = List<Playlist>.from(_playlistsNotifier.value);
     final playlistIndex = current.indexWhere((p) => p.name == name);
-
     if (playlistIndex != -1) {
       final playlist = current[playlistIndex];
       final songs = List<MuzoItem>.from(playlist.songs);
-
-      // Optimistic
       songs.removeWhere((s) => s.videoId == videoId);
       current[playlistIndex] = Playlist(
         id: playlist.id,
@@ -302,15 +217,6 @@ class StorageService {
       );
       _playlistsNotifier.value = current;
       _savePlaylistsToCache(current);
-
-      isLoadingNotifier.value = true;
-      try {
-        await _api.removeSongFromPlaylist(name, videoId);
-      } catch (e) {
-        errorNotifier.value = 'Failed to remove from playlist: $e';
-      } finally {
-        isLoadingNotifier.value = false;
-      }
     }
   }
 
@@ -320,27 +226,15 @@ class StorageService {
   }
 
   Future<void> toggleFavorite(MuzoItem result) async {
-    isLoadingNotifier.value = true;
     final current = List<MuzoItem>.from(_favoritesNotifier.value);
     final index = current.indexWhere((s) => s.videoId == result.videoId);
-
-    try {
-      if (index != -1) {
-        // Remove
-        await _api.removeFromFavorites(result.videoId!);
-        current.removeAt(index);
-        _favoritesNotifier.value = current;
-      } else {
-        // Add
-        await _api.addToFavorites(result);
-        current.insert(0, result);
-        _favoritesNotifier.value = current;
-      }
-    } catch (e) {
-      errorNotifier.value = 'Failed to update favorites: $e';
-    } finally {
-      isLoadingNotifier.value = false;
+    if (index != -1) {
+      current.removeAt(index);
+    } else {
+      current.insert(0, result);
     }
+    _favoritesNotifier.value = current;
+    _saveFavoritesToCache(current);
   }
 
   // Downloads (Local only)
@@ -400,31 +294,17 @@ class StorageService {
   }
 
   Future<void> toggleSubscription(Channel channel) async {
-    isLoadingNotifier.value = true;
     final current = List<Channel>.from(_subscriptionsNotifier.value);
     final index = current.indexWhere(
       (s) => s.channelId == channel.channelId || s.name == channel.name,
     );
-
-    try {
-      if (index != -1) {
-        // Unsubscribe — use channelId or name as the identifier
-        final id = channel.channelId ?? channel.name;
-        await _api.removeSubscription(id);
-        current.removeAt(index);
-        _subscriptionsNotifier.value = current;
-      } else {
-        // Subscribe
-        await _api.addSubscription(channel);
-        current.insert(0, channel);
-        _subscriptionsNotifier.value = current;
-      }
-      _saveSubscriptionsToCache(current);
-    } catch (e) {
-      errorNotifier.value = 'Failed to update subscription: $e';
-    } finally {
-      isLoadingNotifier.value = false;
+    if (index != -1) {
+      current.removeAt(index);
+    } else {
+      current.insert(0, channel);
     }
+    _subscriptionsNotifier.value = current;
+    _saveSubscriptionsToCache(current);
   }
 
   // Artist Images (Local Cache)
@@ -504,8 +384,6 @@ class StorageService {
 
   Future<void> setAuthToken(String token) async {
     await _settingsBox.put('authToken', token);
-    // Refresh data when token is set (login). We don't await this so it doesn't block the UI.
-    refreshAll();
   }
 
   Future<void> clearUserSession() async {
