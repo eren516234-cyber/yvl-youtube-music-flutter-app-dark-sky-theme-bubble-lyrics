@@ -244,7 +244,7 @@ class SongOptionsMenu extends ConsumerWidget {
               onTap: () async {
                 onClose?.call();
                 if (result.videoId != null) {
-                  await SharePlus.share(ShareParams(text: 'https://youtube.com/watch?v=${result.videoId}'));
+                  await SharePlus.instance.share(ShareParams(text: 'https://youtube.com/watch?v=${result.videoId}'));
                 }
               },
             ),
