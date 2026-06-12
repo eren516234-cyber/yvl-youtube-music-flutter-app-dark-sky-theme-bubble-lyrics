@@ -10,14 +10,15 @@ android {
     ndkVersion = "27.0.12077973"
 
     compileOptions {
-        // Must match root build.gradle.kts override (VERSION_17) and support coreLibraryDesugaring
-        sourceCompatibility = JavaVersion.VERSION_17
-        targetCompatibility = JavaVersion.VERSION_17
+        // Java 11 — consistent with global root build.gradle.kts setting
+        // and compatible with isCoreLibraryDesugaringEnabled
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
     }
 
     kotlinOptions {
-        jvmTarget = "17"
+        jvmTarget = "11"
     }
 
     defaultConfig {
