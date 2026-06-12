@@ -539,4 +539,20 @@ class StorageService {
       debugPrint('Error saving home cache: $e');
     }
   }
+
+  // Splash / Onboarding
+  bool get hasSeenSplash =>
+      _settingsBox.get('hasSeenSplash', defaultValue: false);
+  Future<void> setHasSeenSplash(bool value) async {
+    await _settingsBox.put('hasSeenSplash', value);
+  }
+
+  bool get hasSetUsername =>
+      _settingsBox.get('hasSetUsername', defaultValue: false);
+
+  Future<void> saveLocalUsername(String name) async {
+    await _settingsBox.put('username', name);
+    await _settingsBox.put('hasSetUsername', true);
+    fetchAndCacheUserAvatar();
+  }
 }
