@@ -47,6 +47,8 @@ dependencies:
   flutter_animate: ^4.5.2
   youtube_explode_dart: ^2.3.0
   image_picker: ^1.1.2
+  app_links: ^3.4.3
+  share_plus: ^9.1.0
 
 dev_dependencies:
   flutter_test:
