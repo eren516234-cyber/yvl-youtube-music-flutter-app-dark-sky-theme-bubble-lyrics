@@ -7,6 +7,7 @@ import 'package:yvl/services/storage_service.dart';
 import 'package:yvl/services/navigator_key.dart';
 import 'package:yvl/services/notification_service.dart';
 import 'package:yvl/widgets/main_layout.dart';
+import 'package:yvl/widgets/global_background.dart';
 import 'package:yvl/providers/theme_provider.dart';
 import 'package:yvl/providers/settings_provider.dart';
 import 'package:dynamic_color/dynamic_color.dart';
@@ -71,9 +72,11 @@ class MyApp extends ConsumerWidget {
           debugShowCheckedModeBanner: false,
           theme: theme,
           builder: (context, child) {
-            return MainLayout(
-              key: const ValueKey('main_layout_shell'),
-              child: child!,
+            return GlobalBackground(
+              child: MainLayout(
+                key: const ValueKey('main_layout_shell'),
+                child: child!,
+              ),
             );
           },
           // Login removed — direct home access
