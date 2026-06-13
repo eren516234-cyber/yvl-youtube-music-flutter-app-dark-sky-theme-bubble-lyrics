@@ -183,6 +183,27 @@ class StandardPlayer extends ConsumerWidget {
           ),
         ),
 
+        // ── Swipe: left/right = next/prev; vertical down = close ──────────
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onHorizontalDragEnd: (d) {
+            if (d.primaryVelocity == null) return;
+            final handler = ref.read(audioHandlerProvider);
+            if (d.primaryVelocity! < -250) {
+              handler.skipToNext();
+            } else if (d.primaryVelocity! > 250) {
+              handler.skipToPrevious();
+            }
+          },
+          onVerticalDragEnd: (d) {
+            if ((d.primaryVelocity ?? 0) > 600) {
+              ref.read(isPlayerExpandedProvider.notifier).state = false;
+              Navigator.of(context).pop();
+            }
+          },
+          child: Container(color: Colors.transparent),
+        ),
+
         // Header (Minimize, Album info, options)
         Padding(
           padding: EdgeInsets.only(
