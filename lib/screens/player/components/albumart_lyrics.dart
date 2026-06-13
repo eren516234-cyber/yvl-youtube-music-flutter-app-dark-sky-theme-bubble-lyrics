@@ -27,6 +27,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
   Lyrics? _lyrics;
   String? _lastFetchedTitle;
   _LyricsMode _lyricsMode = _LyricsMode.lineByLine;
+  int _reSyncCount = 0; // Increments to force lyric scroll-to-current
 
   Future<void> _fetchLyrics(MediaItem mediaItem) async {
     if (_lyrics != null && _lastFetchedTitle == mediaItem.title) return;
@@ -157,17 +158,34 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
                                       ),
                                     ],
                                   ),
-                                  // Close button
-                                  GestureDetector(
-                                    onTap: () => setState(() => _showLyrics = false),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(6),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
-                                        shape: BoxShape.circle,
+                                  // Re-sync + Close buttons
+                                  Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      GestureDetector(
+                                        onTap: () => setState(() => _reSyncCount++),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          margin: const EdgeInsets.only(right: 6),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.10),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(FluentIcons.arrow_sync_20_regular, size: 15, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.8)),
+                                        ),
                                       ),
-                                      child: Icon(Icons.close_rounded, size: 16, color: Theme.of(context).colorScheme.onSurface),
-                                    ),
+                                      GestureDetector(
+                                        onTap: () => setState(() => _showLyrics = false),
+                                        child: Container(
+                                          padding: const EdgeInsets.all(6),
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.12),
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(Icons.close_rounded, size: 16, color: Theme.of(context).colorScheme.onSurface),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
@@ -253,6 +271,7 @@ class _AlbumArtNLyricsState extends ConsumerState<AlbumArtNLyrics> {
     switch (_lyricsMode) {
       case _LyricsMode.lineByLine:
         return LyricsView(
+          key: ValueKey('lyrics_line_$_reSyncCount'),
           lyrics: lyrics,
           onClose: () => setState(() => _showLyrics = false),
           positionStream: audioHandler.player.positionStream,
