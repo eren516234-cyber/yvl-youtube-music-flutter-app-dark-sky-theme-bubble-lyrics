@@ -10,7 +10,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:yvl/providers/navigation_provider.dart';
 import 'package:yvl/providers/search_provider.dart';
 import 'package:yvl/screens/library_screen.dart';
-import 'package:yvl/screens/subscribed_channels_screen.dart';
 import 'package:yvl/models/muzo_item.dart';
 import 'package:yvl/models/user_data.dart';
 import 'package:yvl/services/storage_service.dart';
@@ -25,6 +24,7 @@ import 'package:yvl/widgets/home_item_widget.dart';
 import 'package:yvl/services/ytm_home.dart';
 import 'package:yvl/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -177,10 +177,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           index: selectedIndex,
           children: [
             _buildExploreTab(context, ref),
+            const SearchScreen(),
             const LibraryScreen(),
-            const SubscribedChannelsScreen(),
-            const SettingsScreen(), // Added Settings Tab
-            const SizedBox.shrink(), // Placeholder for Sync Dialog
+            const SettingsScreen(),
+            const SizedBox.shrink(),
           ],
         ),
       ),
@@ -210,6 +210,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             SliverToBoxAdapter(
               child: _buildFilterChipsRow(context, ref, isDesktop),
             ),
+
+            // Featured American Artists
+            _buildFeaturedArtists(context, isDesktop),
 
             // "Speed dial" big label
             if (ref.read(storageServiceProvider).historyListenable.value.isNotEmpty)
@@ -574,6 +577,121 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
+
+  // ───────────────────────────────────────────────────────────────
+  // Featured American Artists (hardcoded, always visible)
+  // ───────────────────────────────────────────────────────────────
+  static const _featuredArtists = [
+    {'name': 'Frank Ocean',   'c1': 0xFF6C63FF, 'c2': 0xFF4A90E2},
+    {'name': 'Playboi Carti', 'c1': 0xFFFF416C, 'c2': 0xFFFF4B2B},
+    {'name': 'The Weeknd',    'c1': 0xFF8A2BE2, 'c2': 0xFFFF416C},
+    {'name': 'Drake',         'c1': 0xFFFFAF00, 'c2': 0xFFFF6B00},
+    {'name': 'J. Cole',       'c1': 0xFF11998E, 'c2': 0xFF38EF7D},
+    {'name': 'Tyler',         'c1': 0xFF654EA3, 'c2': 0xFFEAAFC8},
+    {'name': 'Kendrick',      'c1': 0xFF093028, 'c2': 0xFF237A57},
+    {'name': 'SZA',           'c1': 0xFFC471ED, 'c2': 0xFFF64F59},
+    {'name': 'Travis Scott',  'c1': 0xFF1A1A2E, 'c2': 0xFF16213E},
+    {'name': 'Lil Uzi',       'c1': 0xFFFC00FF, 'c2': 0xFF00DBDE},
+  ];
+
+  Widget _buildFeaturedArtists(BuildContext context, bool isDesktop) {
+    return SliverToBoxAdapter(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 16, 18, 16, 10),
+            child: Text(
+              'Featured Artists',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: Theme.of(context).colorScheme.onSurface,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+          SizedBox(
+            height: 96,
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: isDesktop ? 24 : 16),
+              itemCount: _featuredArtists.length,
+              itemBuilder: (context, i) {
+                final artist = _featuredArtists[i];
+                final name = artist['name'] as String;
+                final c1 = Color(artist['c1'] as int);
+                final c2 = Color(artist['c2'] as int);
+                return Padding(
+                  padding: const EdgeInsets.only(right: 14),
+                  child: GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => const SearchScreen(),
+                      ));
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 62,
+                          height: 62,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [c1, c2],
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: c1.withValues(alpha: 0.45),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              name[0],
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                        )
+                            .animate(delay: Duration(milliseconds: i * 60))
+                            .fadeIn(duration: const Duration(milliseconds: 300))
+                            .scale(begin: const Offset(0.7, 0.7), end: const Offset(1, 1), curve: Curves.elasticOut, duration: const Duration(milliseconds: 500)),
+                        const SizedBox(height: 6),
+                        SizedBox(
+                          width: 62,
+                          child: Text(
+                            name,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+                              fontSize: 10,
+                              fontWeight: FontWeight.w500,
+                            ),
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRecentsGrid(BuildContext context, WidgetRef ref, bool isDesktop) {
     final storage = ref.watch(storageServiceProvider);
     final screenWidth = MediaQuery.of(context).size.width;
@@ -698,7 +816,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       playlistId: name,
                     );
 
-                    return HomeItemWidget(item: homeItem);
+                    return HomeItemWidget(item: homeItem)
+                        .animate(delay: Duration(milliseconds: index * 80))
+                        .fadeIn(duration: const Duration(milliseconds: 350))
+                        .slideX(begin: 0.2, end: 0.0, curve: Curves.easeOutCubic, duration: const Duration(milliseconds: 350));
                   },
                 ),
               ),
@@ -747,7 +868,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                       type: item.resultType == 'song' ? 'song' : 'video',
                       videoId: item.videoId,
                     );
-                    return HomeItemWidget(item: homeItem);
+                    return HomeItemWidget(item: homeItem)
+                        .animate(delay: Duration(milliseconds: index * 70))
+                        .fadeIn(duration: const Duration(milliseconds: 300))
+                        .scale(begin: const Offset(0.92, 0.92), end: const Offset(1, 1), duration: const Duration(milliseconds: 300));
                   },
                 ),
               ),
