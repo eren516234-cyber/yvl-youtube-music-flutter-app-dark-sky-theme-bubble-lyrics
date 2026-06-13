@@ -16,7 +16,7 @@ class SettingsState {
     required this.audioQuality,
     required this.themeType,
     this.isGestureMode = false,
-    this.appFontFamily = 'Roboto',
+    this.appFontFamily = 'ADLaM Display',
   });
 
   SettingsState copyWith({
@@ -41,7 +41,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
           audioQuality: AudioQuality.high,
           themeType: ThemeType.auto,
           isGestureMode: false,
-          appFontFamily: 'Roboto',
+          appFontFamily: 'ADLaM Display',
         ),
       ) {
     _loadSettings();
@@ -52,7 +52,7 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
     final qualityIndex = box.get('audioQuality', defaultValue: 0);
     final themeTypeIndex = box.get('themeType', defaultValue: 0);
     final isGestureMode = box.get('isGestureMode', defaultValue: false) ?? false;
-    final appFontFamily = box.get('appFontFamily', defaultValue: 'Roboto');
+    final appFontFamily = box.get('appFontFamily', defaultValue: 'ADLaM Display');
 
     final validThemeIndex =
         (themeTypeIndex >= 0 && themeTypeIndex < ThemeType.values.length)
