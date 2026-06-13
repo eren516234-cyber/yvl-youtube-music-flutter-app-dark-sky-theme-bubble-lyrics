@@ -27,6 +27,7 @@ import 'package:yvl/widgets/skeleton_loader.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:yvl/providers/player_provider.dart';
+import 'package:yvl/widgets/album_dialer.dart';
 
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -37,6 +38,8 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  bool _showDialer = false;
+
   @override
   void initState() {
     super.initState();
@@ -168,18 +171,30 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: ColoredBox(
-        color: Theme.of(context).scaffoldBackgroundColor,
-        child: FadeIndexedStack(
-          index: selectedIndex,
-          children: [
-            _buildExploreTab(context, ref),
-            const SearchScreen(),
-            const LibraryScreen(),
-            const SettingsScreen(),
-            const SizedBox.shrink(),
-          ],
-        ),
+      floatingActionButton: selectedIndex == 0 ? _buildExploreFab(context) : null,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+      body: Stack(
+        children: [
+          ColoredBox(
+            color: Theme.of(context).scaffoldBackgroundColor,
+            child: FadeIndexedStack(
+              index: selectedIndex,
+              children: [
+                _buildExploreTab(context, ref),
+                const SearchScreen(),
+                const LibraryScreen(),
+                const SettingsScreen(),
+                const SizedBox.shrink(),
+              ],
+            ),
+          ),
+          if (_showDialer)
+            AlbumDialer(
+              albums: _dialerAlbums(),
+              onItemSelected: _onDialerItemSelected,
+              onClose: () => setState(() => _showDialer = false),
+            ),
+        ],
       ),
     );
   }
@@ -236,6 +251,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             _buildForYouSection(context, ref, isDesktop),
 
             const SliverToBoxAdapter(child: SizedBox(height: 8)),
+
+            // ── Popular Songs from YTM (unfiltered) ───────────────────────────
+            _buildPopularSongsSection(context, ref, isDesktop),
 
             // ── YTM dynamic home sections ─────────────────────────────────────
             if (ref.watch(storageServiceProvider).showYtmHome)
@@ -785,6 +803,153 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 }
+
+  // ── Popular Songs section (all unfiltered songs from YTM home) ─────────────
+  Widget _buildPopularSongsSection(BuildContext context, WidgetRef ref, bool isDesktop) {
+    final homeSectionsAsync = ref.watch(homeSectionsProvider);
+    return homeSectionsAsync.when(
+      data: (sections) {
+        final songs = sections
+            .expand((s) => s.contents)
+            .where((item) => item.videoId != null && item.thumbnailUrl != null)
+            .take(20)
+            .toList();
+        if (songs.isEmpty) return const SliverToBoxAdapter(child: SizedBox.shrink());
+        return SliverToBoxAdapter(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Padding(
+                padding: EdgeInsets.fromLTRB(isDesktop ? 24 : 16, 24, 16, 12),
+                child: Row(
+                  children: [
+                    Icon(FluentIcons.music_note_2_24_regular,
+                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7), size: 20),
+                    const SizedBox(width: 8),
+                    Text('Popular Songs',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).colorScheme.onSurface,
+                          letterSpacing: 0.3,
+                        )),
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 195,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  itemCount: songs.length,
+                  itemBuilder: (context, index) {
+                    return HomeItemWidget(item: songs[index])
+                        .animate(delay: Duration(milliseconds: index * 55))
+                        .fadeIn(duration: 320.ms)
+                        .slideX(begin: 0.18, end: 0.0, curve: Curves.easeOutCubic, duration: 320.ms);
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+      loading: () => const SliverToBoxAdapter(child: SizedBox.shrink()),
+      error: (_, __) => const SliverToBoxAdapter(child: SizedBox.shrink()),
+    );
+  }
+
+  // ── Explore FAB button ─────────────────────────────────────────────────────
+  Widget _buildExploreFab(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.mediumImpact();
+        setState(() => _showDialer = !_showDialer);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 280),
+        curve: Curves.easeOutBack,
+        width: 56,
+        height: 56,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: _showDialer
+              ? Theme.of(context).colorScheme.onSurface
+              : Theme.of(context).scaffoldBackgroundColor,
+          border: Border.all(
+            color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.22),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: AnimatedSwitcher(
+          duration: const Duration(milliseconds: 200),
+          child: Icon(
+            _showDialer ? Icons.close_rounded : Icons.explore_outlined,
+            key: ValueKey(_showDialer),
+            color: _showDialer
+                ? Theme.of(context).colorScheme.surface
+                : Theme.of(context).colorScheme.onSurface,
+            size: 26,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ── Get albums for the dialer ──────────────────────────────────────────────
+  List<HomeItem> _dialerAlbums() {
+    final sections = ref.read(homeSectionsProvider).value ?? [];
+    final fromSections = sections
+        .expand((s) => s.contents)
+        .where((item) => item.thumbnailUrl != null)
+        .take(22)
+        .toList();
+    if (fromSections.isNotEmpty) return fromSections;
+    // Fallback: favorites
+    final storage = ref.read(storageServiceProvider);
+    return storage.favoritesListenable.value.take(15).map((fav) {
+      final url = fav.thumbnails.isNotEmpty ? fav.thumbnails.last.url : '';
+      return HomeItem(
+        title: fav.title,
+        subtitle: fav.displayArtist,
+        thumbnails: url.isNotEmpty ? [{'url': url, 'width': 500, 'height': 500}] : [],
+        type: 'song',
+        videoId: fav.videoId,
+      );
+    }).toList();
+  }
+
+  // ── Handle dialer item tap ─────────────────────────────────────────────────
+  void _onDialerItemSelected(HomeItem item) {
+    HapticFeedback.mediumImpact();
+    if (item.videoId != null) {
+      final muzoItem = MuzoItem(
+        videoId: item.videoId!,
+        title: item.title,
+        thumbnails: item.thumbnails
+            .map((t) => MuzoThumbnail(
+                  url: t['url'] ?? '',
+                  width: (t['width'] as num?)?.toInt() ?? 0,
+                  height: (t['height'] as num?)?.toInt() ?? 0,
+                ))
+            .toList(),
+        artists: item.subtitle != null
+            ? [MuzoArtist(name: item.subtitle!, id: '')]
+            : [],
+        resultType: item.type ?? 'song',
+        isExplicit: false,
+      );
+      ref.read(audioHandlerProvider).playItem(muzoItem);
+      setState(() => _showDialer = false);
+    }
+  }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Artist circle widget – loads real photo via artistInfoProvider
