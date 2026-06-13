@@ -810,7 +810,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return homeSectionsAsync.when(
       data: (sections) {
         final songs = sections
-            .expand((s) => s.contents)
+            .expand((s) => s.items)
             .where((item) => item.videoId != null && item.thumbnailUrl != null)
             .take(20)
             .toList();
@@ -907,7 +907,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   List<HomeItem> _dialerAlbums() {
     final sections = ref.read(homeSectionsProvider).value ?? [];
     final fromSections = sections
-        .expand((s) => s.contents)
+        .expand((s) => s.items)
         .where((item) => item.thumbnailUrl != null)
         .take(22)
         .toList();
@@ -941,12 +941,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ))
             .toList(),
         artists: item.subtitle != null
-            ? [MuzoArtist(name: item.subtitle!, id: '')]
+            ? [MuzoArtist(name: item.subtitle!, id: null)]
             : [],
         resultType: item.type ?? 'song',
         isExplicit: false,
       );
-      ref.read(audioHandlerProvider).playItem(muzoItem);
+      ref.read(audioHandlerProvider).playVideo(muzoItem);
       setState(() => _showDialer = false);
     }
   }
