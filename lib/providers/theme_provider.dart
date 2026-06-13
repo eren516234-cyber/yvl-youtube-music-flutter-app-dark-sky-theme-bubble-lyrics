@@ -9,7 +9,7 @@ import 'package:palette_generator/palette_generator.dart';
 import 'package:yvl/providers/player_provider.dart';
 import 'package:yvl/utils/app_colors.dart';
 
-const String kDefaultFontFamily = 'Roboto';
+const String kDefaultFontFamily = 'ADLaM Display';
 
 extension ColorWithHSL on Color {
   HSLColor get hsl => HSLColor.fromColor(this);
