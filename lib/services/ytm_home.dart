@@ -348,6 +348,46 @@ class YouTubeMusicHomeService {
     }
   }
 
+
+  /// Search YouTube Music for an artist and return their browseId + thumbnail URL.
+  Future<Map<String, String>?> searchArtistInfo(String artistName) async {
+    try {
+      final data = Map<String, dynamic>.from(_getContext());
+      data['query'] = artistName;
+      data['params'] = 'EgWKAQIgAWoKEAMQBBAJEAoQBQ%3D%3D';
+      final response = await _sendRequest('search', data);
+      final contents = _nav(response.data, [
+        'contents', 'tabbedSearchResultsRenderer', 'tabs', 0, 'tabRenderer',
+        'content', 'sectionListRenderer', 'contents'
+      ]) as List?;
+      if (contents == null) return null;
+      for (final shelf in contents) {
+        if (shelf is! Map || !shelf.containsKey('musicShelfRenderer')) continue;
+        final items = shelf['musicShelfRenderer']['contents'] as List? ?? [];
+        for (final item in items) {
+          if (item is! Map || !item.containsKey('musicResponsiveListItemRenderer')) continue;
+          final renderer = item['musicResponsiveListItemRenderer'] as Map<String, dynamic>;
+          final browseId = _nav(renderer, ['navigationEndpoint', 'browseEndpoint', 'browseId'])?.toString();
+          if (browseId == null || !browseId.startsWith('UC')) continue;
+          final thumbList = _nav(renderer, ['thumbnail', 'musicThumbnailRenderer', 'thumbnail', 'thumbnails']) as List?;
+          String thumbUrl = '';
+          if (thumbList != null && thumbList.isNotEmpty) {
+            thumbUrl = thumbList.last['url']?.toString() ?? '';
+            // Upgrade to higher-res thumbnail
+            if (thumbUrl.contains('=w')) {
+              final idx = thumbUrl.indexOf('=w');
+              thumbUrl = thumbUrl.substring(0, idx) + '=w300-h300-l90-rj';
+            }
+          }
+          return {'browseId': browseId, 'thumbnailUrl': thumbUrl};
+        }
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   void dispose() {
     _dio.close();
   }
